@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}DuoPlanner{% endblock %}</title>
+  <meta name="theme-color" content="#0b0b1a">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="/tw.css">
+  <script src="/htmx.min.js"></script>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body class="bg-bg text-slate-100 min-h-screen antialiased">
+  <div class="max-w-md mx-auto px-4 pt-6 {% if user %}pb-28{% else %}pb-10{% endif %}">
+    <div id="toasts" class="space-y-2 mb-3">
+      {% for f in flashes %}<div class="toast">{{ f }}</div>{% endfor %}
+    </div>
+    {% block content %}{% endblock %}
+  </div>
+
+  {% if user %}
+  <nav class="fixed bottom-0 inset-x-0 bg-[#0e0e20]/95 backdrop-blur border-t border-line pb-[env(safe-area-inset-bottom)]">
+    <div class="max-w-md mx-auto grid grid-cols-6 text-[10px]">
+      {% for key, href, icon, label in [
+        ('home', '/', '🏠', 'Inicio'), ('tablero', '/tablero', '📊', 'Tablero'), ('gym', '/gym', '🏋️', 'Gym'), ('study', '/study', '📚', 'Estudio'),
+        ('habits', '/habits', '✅', 'Hábitos'), ('ranking', '/ranking', '🏆', 'Ranking')] %}
+      <a href="{{ href }}" class="flex flex-col items-center py-2.5 gap-0.5 {% if active == key %}text-brand{% else %}text-slate-400{% endif %}">
+        <span class="text-xl leading-none {% if active != key %}grayscale opacity-70{% endif %}">{{ icon }}</span>{{ label }}
+      </a>
+      {% endfor %}
+    </div>
+  </nav>
+  {% endif %}
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+    document.body.addEventListener('htmx:afterSwap', () => setTimeout(() =>
+      document.querySelectorAll('#toasts .toast').forEach(t => t.remove()), 4000));
+    setTimeout(() => document.querySelectorAll('#toasts .toast').forEach(t => t.remove()), 4000);
+  </script>
+</body>
+</html>

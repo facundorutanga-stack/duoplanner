@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block content %}
+{{ m.header("Gimnasio", "🏋️") }}
+
+<details class="mb-3">
+  <summary class="btn cursor-pointer list-none">+ Registrar entrenamiento</summary>
+  <form method="post" action="/gym" class="card mt-2 space-y-3">
+    <div><label class="label">Nombre</label><input class="input" name="name" placeholder="Ej: Push, Piernas, Correr 5 km" required maxlength="60"></div>
+    <div><label class="label">Fecha</label><input class="input" type="date" name="day" value="{{ today.isoformat() }}" min="{{ min_day.isoformat() }}" max="{{ today.isoformat() }}" required></div>
+    <div><label class="label">Ejercicios (opcional)</label>
+      <textarea class="input" name="detail" rows="4" placeholder="Press de banca 4x10 60 kg&#10;Sentadilla 4x8 80 kg"></textarea></div>
+    <button class="btn">Guardar entrenamiento</button>
+  </form>
+</details>
+
+<div class="card mb-3">
+  <div class="flex items-center justify-between mb-3">
+    <div><p class="font-semibold">Esta semana</p><p class="text-sm text-slate-400">{{ count }} de {{ goal }} entrenamientos</p></div>
+    {{ m.ring(pct, '#3b82f6', 60) }}
+  </div>
+  {{ m.dots(week, weekdays, 'bg-brand2') }}
+</div>
+
+<h2 class="font-bold text-lg mt-5 mb-2">Historial</h2>
+<div class="space-y-2">
+  {% for w in recent %}
+  <details class="card !p-3">
+    <summary class="flex items-center gap-3 cursor-pointer list-none">
+      <span class="text-green-400 text-lg">●</span>
+      <div class="flex-1 min-w-0"><p class="font-semibold truncate">{{ w.name }}</p><p class="text-xs text-slate-400">{{ w.day|fecha_larga }}</p></div>
+      {% if w.detail %}<span class="text-slate-500 text-sm">ver</span>{% endif %}
+    </summary>
+    {% if w.detail %}<pre class="whitespace-pre-wrap text-sm text-slate-300 mt-2 font-sans">{{ w.detail }}</pre>{% endif %}
+    {% if can_edit(w.day) %}
+    <form method="post" action="/gym/{{ w.id }}/delete" class="mt-2" onsubmit="return confirm('¿Borrar este entrenamiento?')">
+      <button class="text-xs text-slate-500">🗑 Borrar</button>
+    </form>
+    {% endif %}
+  </details>
+  {% else %}
+  <p class="text-sm text-slate-400">Todavía no registraste entrenamientos.</p>
+  {% endfor %}
+</div>
+{% endblock %}

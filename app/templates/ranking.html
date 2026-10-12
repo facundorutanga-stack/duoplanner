@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block content %}
+{{ m.header("Ranking semanal", "🏆") }}
+<p class="text-slate-400 text-sm -mt-3 mb-4">Semana del {{ monday|fecha_corta }} · se reinicia cada lunes</p>
+
+<div class="flex gap-1 bg-card border border-line rounded-xl p-1 mb-4">
+  <a href="/ranking?by=points" class="tab {% if by != 'pct' %}on{% endif %}">Puntos</a>
+  <a href="/ranking?by=pct" class="tab {% if by == 'pct' %}on{% endif %}">Cumplimiento %</a>
+</div>
+
+<div class="space-y-2">
+  {% for r in rows %}
+  <div class="card flex items-center gap-3 {% if r.me %}border-brand{% endif %}">
+    <span class="w-7 text-center text-lg font-bold">{% if loop.first %}👑{% else %}{{ loop.index }}{% endif %}</span>
+    <span class="text-3xl">{{ r.user.avatar }}</span>
+    <div class="flex-1 min-w-0">
+      <p class="font-semibold truncate">{{ r.user.name }}{% if r.me %} (vos){% endif %}</p>
+      <p class="text-xs text-slate-400">🔥 {{ r.streak }} · 🏋️ {{ r.stats.workouts }} · 📚 {{ r.stats.study_min|horas }} · ✅ {{ r.stats.habit_checks }}</p>
+    </div>
+    <p class="text-xl font-extrabold">{% if by == 'pct' %}{{ r.stats.overall_pct|pct }}{% else %}{{ r.stats.points }} <span class="text-sm font-normal text-slate-400">pts</span>{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+{% if rows|length < 2 %}
+<a href="/group" class="btn btn-ghost mt-3">👥 Invitá a tus amigos para competir</a>
+{% endif %}
+
+<div class="card mt-5">
+  <p class="font-semibold mb-2">Cómo se suman puntos</p>
+  {% for what, pts in rules %}
+  <div class="flex justify-between text-sm py-1 border-b border-line last:border-0"><span class="text-slate-300">{{ what }}</span><span class="text-slate-400">{{ pts }}</span></div>
+  {% endfor %}
+  <p class="text-xs text-slate-500 mt-2">"Cumplimiento %" compara lo que hiciste contra tus propias metas, así compite parejo quien recién empieza.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block content %}
+{{ m.header("Hábitos", "✅") }}
+
+<div class="card flex items-center justify-between mb-3">
+  {% if prev_day %}<a href="/habits?d={{ prev_day.isoformat() }}" class="px-3 text-xl">‹</a>{% else %}<span class="px-3 text-xl text-slate-700">‹</span>{% endif %}
+  <p class="font-semibold">{% if day == today %}Hoy, {% endif %}{{ day|fecha_larga }}</p>
+  {% if next_day %}<a href="/habits?d={{ next_day.isoformat() }}" class="px-3 text-xl">›</a>{% else %}<span class="px-3 text-xl text-slate-700">›</span>{% endif %}
+</div>
+
+<div class="space-y-2" id="habit-list">
+  {% for r in rows %}
+    {% with habit=r.habit, done=r.done, week=r.week %}{% include "partials/habit_row.html" %}{% endwith %}
+  {% else %}
+  <p class="text-slate-400 text-sm">No tenés hábitos todavía. Agregá el primero abajo.</p>
+  {% endfor %}
+</div>
+
+<details class="mt-3">
+  <summary class="btn btn-ghost cursor-pointer list-none">+ Agregar hábito</summary>
+  <form method="post" action="/habits" class="card mt-2 space-y-2">
+    <div class="flex gap-2">
+      <input class="input w-16 text-center text-xl" name="icon" value="✅" maxlength="8" aria-label="Ícono">
+      <input class="input flex-1" name="name" placeholder="Ej: Meditar 10 min" required maxlength="60">
+    </div>
+    <button class="btn">Guardar</button>
+  </form>
+</details>
+
+<div class="card mt-5 text-center">
+  <p class="text-4xl">🔥</p>
+  <p class="text-2xl font-extrabold">{{ streak }} {{ "día" if streak == 1 else "días" }}</p>
+  <p class="text-slate-400 text-sm">de racha. {% if streak >= 3 %}¡Vas muy bien! 💪{% else %}Cada día cuenta.{% endif %}</p>
+</div>
+<p class="text-xs text-slate-500 mt-3 text-center">Podés tildar hasta {{ window }} días hacia atrás.</p>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% macro bar(label, value, target, unit, color, note='') -%}
+<div>
+  <div class="flex justify-between text-sm"><span>{{ label }}</span><span class="text-slate-400">{{ value }} / {{ target }} {{ unit }}</span></div>
+  <div class="h-2.5 rounded bg-line overflow-hidden mt-1"><div class="h-full rounded" style="background: {{ color }}; width: {{ [value / target * 100, 100]|min|round(1) if target else 0 }}%"></div></div>
+  {% if note %}<p class="text-[11px] text-slate-500 mt-0.5">{{ note }}</p>{% endif %}
+</div>
+{%- endmacro %}
+{% block content %}
+{{ m.header("Nutrición", "🥗") }}
+
+{% if editing %}
+<div class="card mb-4">
+  <p class="font-semibold mb-1">Tus datos</p>
+  <p class="text-sm text-slate-400 mb-3">Con esto calculamos cuánta energía, proteína y fibra necesitás. Solo los ves vos.</p>
+  <form method="post" action="/nutricion" class="space-y-3">
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="label">Sexo biológico</label>
+        <select class="input" name="sex"><option value="m" {% if p and p.sex == 'm' %}selected{% endif %}>Hombre</option><option value="f" {% if p and p.sex == 'f' %}selected{% endif %}>Mujer</option></select></div>
+      <div><label class="label">Edad</label><input class="input" type="number" name="age" min="16" max="90" value="{{ p.age if p else '' }}" required></div>
+      <div><label class="label">Peso (kg)</label><input class="input" type="number" step="0.1" name="weight_kg" min="30" max="300" value="{{ p.weight_kg if p else '' }}" required></div>
+      <div><label class="label">Altura (cm)</label><input class="input" type="number" name="height_cm" min="120" max="230" value="{{ p.height_cm|int if p else '' }}" required></div>
+    </div>
+    <div><label class="label">Actividad física</label>
+      <select class="input" name="activity">{% for k, (f, label) in activity.items() %}<option value="{{ k }}" {% if (p and p.activity == k) or (not p and k == 'moderada') %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div><label class="label">Objetivo</label>
+      <select class="input" name="goal">{% for k, g in goals.items() %}<option value="{{ k }}" {% if (p and p.goal == k) or (not p and k == 'mantener') %}selected{% endif %}>{{ g[3] }}</option>{% endfor %}</select></div>
+    <label class="flex items-center gap-3"><input type="checkbox" name="vegetarian" value="true" class="w-5 h-5 accent-violet-500" {% if p and p.vegetarian %}checked{% endif %}> Soy vegetariano/a</label>
+    <button class="btn">Calcular mi plan</button>
+  </form>
+</div>
+{% endif %}
+
+{% if p %}
+<div class="card mb-4">
+  <div class="flex items-center justify-between">
+    <div><p class="text-sm text-slate-400">{{ goal_label }}</p><p class="text-3xl font-extrabold">{{ t.kcal }} <span class="text-base font-normal text-slate-400">kcal/día</span></p></div>
+    {% if not editing %}<a href="/nutricion?editar=1" class="text-sm text-brand">Editar datos</a>{% endif %}
+  </div>
+  <p class="text-xs text-slate-500 mt-1">Gasto en reposo {{ t.bmr }} kcal · gasto total estimado {{ t.tdee }} kcal{% if t.kcal == floor %} · no bajamos de {{ floor }} kcal sin seguimiento profesional{% endif %}</p>
+</div>
+
+<h2 class="font-bold text-lg mb-2">Tus objetivos diarios</h2>
+<div class="grid grid-cols-2 gap-2 mb-2">
+  <div class="card !p-3"><p class="text-xs text-slate-400">🥩 Proteína</p><p class="text-2xl font-extrabold">{{ t.protein_g }} g</p><p class="text-[11px] text-slate-500">rango {{ t.protein_range[0] }}-{{ t.protein_range[1] }} g · ~{{ t.protein_per_meal }} g por comida</p></div>
+  <div class="card !p-3"><p class="text-xs text-slate-400">🌾 Fibra</p><p class="text-2xl font-extrabold">{{ t.fiber_g }} g</p><p class="text-[11px] text-slate-500">mínimo</p></div>
+  <div class="card !p-3"><p class="text-xs text-slate-400">🍚 Carbohidratos</p><p class="text-2xl font-extrabold">{{ t.carbs_g }} g</p><p class="text-[11px] text-slate-500">el resto de la energía</p></div>
+  <div class="card !p-3"><p class="text-xs text-slate-400">🥑 Grasas</p><p class="text-2xl font-extrabold">{{ t.fat_g }} g</p><p class="text-[11px] text-slate-500">saturadas: menos de {{ t.sat_fat_max_g }} g</p></div>
+  <div class="card !p-3"><p class="text-xs text-slate-400">🥦 Frutas y verduras</p><p class="text-2xl font-extrabold">{{ t.fruit_veg_g }} g+</p><p class="text-[11px] text-slate-500">unas 5 porciones</p></div>
+  <div class="card !p-3"><p class="text-xs text-slate-400">💧 Agua (bebidas)</p><p class="text-2xl font-extrabold">~{{ t.water_l }} L</p><p class="text-[11px] text-slate-500">+0,5 L por hora de ejercicio</p></div>
+</div>
+<p class="text-xs text-slate-400 mb-5">Límites: azúcar agregada menos de {{ t.sugar_max_g }} g (ideal la mitad) y sal menos de {{ t.salt_max_g }} g por día.</p>
+
+<h2 class="font-bold text-lg mb-1">Un día de ejemplo</h2>
+<p class="text-xs text-slate-400 mb-2">Calculado para tus números. Usalo como guía y cambiá alimentos con las tablas de abajo.</p>
+<div class="card mb-2 space-y-2">
+  {{ bar("Proteína", total_p, t.protein_g, "g", "#3b82f6") }}
+  {{ bar("Fibra", total_f, t.fiber_g, "g", "#22c55e") }}
+  {{ bar("Energía", total_kcal, t.kcal, "kcal", "#7c5cff", "Si te sobra o falta, agrandá o achicá las porciones de arroz, papa, pan o avena." if (total_kcal - t.kcal)|abs > 150 else "") }}
+</div>
+<div class="space-y-2 mb-5">
+  {% for meal in meals %}
+  <details class="card !p-3" {% if loop.first %}open{% endif %}>
+    <summary class="flex justify-between cursor-pointer list-none"><span class="font-semibold">{{ meal.name }}</span>
+      <span class="text-xs text-slate-400">{{ meal.kcal|round|int }} kcal · {{ meal.protein|round|int }} g prot · {{ meal.fiber|round|int }} g fibra</span></summary>
+    <ul class="mt-2 space-y-1">
+      {% for i in meal.items %}
+      <li class="flex justify-between text-sm"><span>{{ i.name }}</span><span class="text-slate-400">{{ i.amount }}</span></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+</div>
+
+<h2 class="font-bold text-lg mb-2">Para cambiar: más proteína por caloría</h2>
+<div class="card mb-4 overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="text-slate-400 text-xs"><tr><th class="text-left font-normal pb-1">Alimento</th><th class="text-right font-normal">Porción</th><th class="text-right font-normal">Prot.</th><th class="text-right font-normal">kcal</th></tr></thead>
+    <tbody>{% for k, name, g, unit, kcal, prot, fib, veg in by_protein %}
+      <tr class="border-t border-line"><td class="py-1.5">{{ name }}</td><td class="text-right text-slate-400 whitespace-nowrap pl-2">{{ (g ~ ' g') if g else ('1 ' ~ unit) }}</td><td class="text-right font-semibold whitespace-nowrap pl-2">{{ prot }} g</td><td class="text-right text-slate-400 pl-2">{{ kcal }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+</div>
+<h2 class="font-bold text-lg mb-2">Para cambiar: más fibra</h2>
+<div class="card mb-4 overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="text-slate-400 text-xs"><tr><th class="text-left font-normal pb-1">Alimento</th><th class="text-right font-normal">Porción</th><th class="text-right font-normal">Fibra</th><th class="text-right font-normal">kcal</th></tr></thead>
+    <tbody>{% for k, name, g, unit, kcal, prot, fib, veg in by_fiber %}
+      <tr class="border-t border-line"><td class="py-1.5">{{ name }}</td><td class="text-right text-slate-400 whitespace-nowrap pl-2">{{ (g ~ ' g') if g else ('1 ' ~ unit) }}</td><td class="text-right font-semibold whitespace-nowrap pl-2">{{ fib }} g</td><td class="text-right text-slate-400 pl-2">{{ kcal }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+</div>
+
+<details class="card mb-3">
+  <summary class="font-semibold cursor-pointer list-none">🔬 En qué se basa</summary>
+  <ul class="text-sm text-slate-300 space-y-2 mt-2">
+    <li><b>Energía:</b> ecuación de Mifflin-St Jeor por tu nivel de actividad; −20 % para perder grasa, +10 % para ganar músculo.</li>
+    <li><b>Proteína:</b> el beneficio para el músculo se estabiliza cerca de 1,6 g por kg y por día (hasta ~2,2). En déficit conviene la parte alta. Repartida en 4 comidas de ~0,4 g/kg.</li>
+    <li><b>Fibra:</b> la OMS recomienda al menos 25 g por día; usamos 14 g cada 1000 kcal si da más.</li>
+    <li><b>Grasas, azúcar y sal:</b> recomendaciones de la OMS.</li>
+    <li><b>Alimentos:</b> valores aproximados de USDA FoodData Central; cambian según marca y cocción.</li>
+  </ul>
+  <ul class="text-xs mt-3 space-y-1">{% for label, url in sources %}<li><a class="text-brand underline" href="{{ url }}" target="_blank" rel="noopener">{{ label }}</a></li>{% endfor %}</ul>
+</details>
+<p class="text-xs text-slate-500 text-center">Es una guía general para adultos sanos, no reemplaza a un nutricionista. No la uses si estás embarazada, en lactancia o con alguna enfermedad.</p>
+{% endif %}
+{% endblock %}

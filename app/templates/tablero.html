@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% macro slider(name, label, value, emoji_lo, emoji_hi) -%}
+<div>
+  <div class="flex justify-between items-baseline"><label class="label" for="{{ name }}">{{ label }}</label>
+    <output id="{{ name }}-out" class="font-bold text-lg">{{ value }}</output></div>
+  <div class="flex items-center gap-2">
+    <span>{{ emoji_lo }}</span>
+    <input id="{{ name }}" type="range" name="{{ name }}" min="1" max="10" value="{{ value }}" class="flex-1 accent-violet-500"
+           oninput="document.getElementById('{{ name }}-out').textContent = this.value">
+    <span>{{ emoji_hi }}</span>
+  </div>
+</div>
+{%- endmacro %}
+{% macro tile(icon, label, value, sub='') -%}
+<div class="card !p-3">
+  <p class="text-xs text-slate-400">{{ icon }} {{ label }}</p>
+  <p class="text-xl font-extrabold mt-0.5">{{ value }}</p>
+  {% if sub %}<p class="text-[11px] text-slate-500">{{ sub }}</p>{% endif %}
+</div>
+{%- endmacro %}
+{% macro trend(now, before, fmt='%.1f') -%}
+{%- if now is not none and before is not none and before != 0 -%}
+  {%- set d = now - before -%}
+  {%- if d|abs >= 0.05 %}{{ '▲' if d > 0 else '▼' }} {{ fmt|format(d|abs) }} vs semana anterior{% else %}igual que la semana anterior{% endif -%}
+{%- endif -%}
+{%- endmacro %}
+{% block content %}
+{{ m.header("Mi tablero", "📊") }}
+
+<div class="card mb-4 border-brand/50 bg-gradient-to-br from-brand/20 to-transparent">
+  <p class="italic text-slate-200">“{{ quote }}”</p>
+  <p class="text-xs text-slate-400 mt-1">Registrá 3 a 6 meses y vas a ver qué mejora o empeora tu bienestar.</p>
+</div>
+
+<!-- Check-in -->
+<div class="card mb-5">
+  <div class="flex items-center justify-between mb-3">
+    {% if prev_day %}<a href="/tablero?d={{ prev_day.isoformat() }}" class="px-2 text-xl">‹</a>{% else %}<span class="px-2 text-xl text-slate-700">‹</span>{% endif %}
+    <p class="font-semibold">Check-in · {% if day == today %}hoy{% else %}{{ day|fecha_larga }}{% endif %} {% if log %}✅{% endif %}</p>
+    {% if next_day %}<a href="/tablero?d={{ next_day.isoformat() }}" class="px-2 text-xl">›</a>{% else %}<span class="px-2 text-xl text-slate-700">›</span>{% endif %}
+  </div>
+  <form method="post" action="/tablero/checkin" class="space-y-4">
+    <input type="hidden" name="day" value="{{ day.isoformat() }}">
+    <div class="flex gap-2">
+      <div class="flex-1"><label class="label">😴 Horas de sueño</label>
+        <input class="input" type="number" step="0.25" min="0" max="16" name="sleep_h" value="{{ log.sleep_h if log and log.sleep_h is not none else '' }}" placeholder="7.5"></div>
+      <div class="flex-1"><label class="label">👨‍👩‍👧 Tiempo con familia (h)</label>
+        <input class="input" type="number" step="0.25" min="0" max="24" name="family_h" value="{{ (log.family_min / 60) if log else '' }}" placeholder="1"></div>
+    </div>
+    <label class="flex items-center gap-3 card !p-3 cursor-pointer">
+      <input type="checkbox" name="exercised" value="true" class="w-5 h-5 accent-violet-500" {% if (log and log.exercised) or trained %}checked{% endif %}>
+      <span>🏋️ Hice ejercicio {% if trained %}<span class="text-xs text-slate-400">(ya registraste un entrenamiento)</span>{% endif %}</span>
+    </label>
+    {{ slider("mood", "🙂 Estado de ánimo", log.mood if log and log.mood else 5, "😞", "😄") }}
+    {{ slider("energy", "⚡ Nivel de energía", log.energy if log and log.energy else 5, "🪫", "🔋") }}
+    {{ slider("satisfaction", "🌟 Satisfacción con la vida", log.satisfaction if log and log.satisfaction else 5, "☁️", "☀️") }}
+    <div><label class="label">Nota (opcional)</label><input class="input" name="note" maxlength="500" value="{{ log.note if log else '' }}" placeholder="¿Qué pasó hoy?"></div>
+    <button class="btn">{% if log %}Actualizar check-in{% else %}Guardar check-in (+10 pts){% endif %}</button>
+  </form>
+  <p class="text-xs text-slate-500 mt-2">Las horas de estudio y el ejercicio se toman solos de tus módulos.</p>
+</div>
+
+<!-- 10 métricas -->
+<h2 class="font-bold text-lg mb-2">Tus 10 métricas · últimos 7 días</h2>
+<div class="grid grid-cols-2 gap-2 mb-5">
+  {{ tile("😴", "Sueño promedio", ("%.1f h"|format(last7.sleep)) if last7.sleep is not none else "—", trend(last7.sleep, prev7.sleep if prev7 else none)) }}
+  {{ tile("🏋️", "Ejercicio", last7.exercise_days ~ " de 7 días", trend(last7.exercise_days, prev7.exercise_days if prev7 else none, '%d')) }}
+  {{ tile("🙂", "Ánimo", ("%.1f"|format(last7.mood)) ~ " / 10" if last7.mood is not none else "—", trend(last7.mood, prev7.mood if prev7 else none)) }}
+  {{ tile("⚡", "Energía", ("%.1f"|format(last7.energy)) ~ " / 10" if last7.energy is not none else "—", trend(last7.energy, prev7.energy if prev7 else none)) }}
+  {{ tile("📚", "Estudio", "%.1f h"|format(last7.study_h), trend(last7.study_h, prev7.study_h if prev7 else none)) }}
+  {{ tile("👨‍👩‍👧", "Familia por día", ("%.1f h"|format(last7.family_h)) if last7.family_h is not none else "—", trend(last7.family_h, prev7.family_h if prev7 else none)) }}
+  {{ tile("💰", "Ahorro " ~ month_label, ("$ {:,.0f}".format(this_month)).replace(",", ".") if this_month is not none else "—", "") }}
+  {{ tile("📖", "Libros y cursos " ~ today.year, year_count, "") }}
+  {{ tile("🎯", "Objetivos de la semana", goals_done ~ " de " ~ goals|length, "") }}
+  {{ tile("🌟", "Satisfacción", ("%.1f"|format(last7.satisfaction)) ~ " / 10" if last7.satisfaction is not none else "—", trend(last7.satisfaction, prev7.satisfaction if prev7 else none)) }}
+</div>
+
+<!-- Gráficos -->
+<div class="flex items-center justify-between mb-2">
+  <h2 class="font-bold text-lg">Evolución</h2>
+</div>
+<div class="flex gap-1 bg-card border border-line rounded-xl p-1 mb-3">
+  {% for n, label in ranges.items() %}<a href="/tablero?rango={{ n }}#graficos" class="tab {% if rango == n %}on{% endif %}">{{ label }}</a>{% endfor %}
+</div>
+<div id="graficos" class="space-y-3 mb-5">
+  <div class="card"><p class="text-sm font-semibold mb-2">Cómo te sentís (1 a 10)</p><div class="h-52"><canvas id="c-feel"></canvas></div></div>
+  <div class="card"><p class="text-sm font-semibold mb-2">Horas de sueño</p><div class="h-40"><canvas id="c-sleep"></canvas></div></div>
+  <div class="card"><p class="text-sm font-semibold mb-2">Horas de estudio y con tu familia</p><div class="h-40"><canvas id="c-time"></canvas></div></div>
+</div>
+
+<!-- Patrones -->
+<h2 class="font-bold text-lg mb-2">Patrones que encontramos</h2>
+<div class="card mb-5 space-y-3">
+  {% if patterns %}
+    {% for p in patterns %}
+    <div class="flex gap-3"><span class="text-xl">{{ '📈' if p.good else '📉' }}</span><p class="text-sm">{{ p.text }}</p></div>
+    {% endfor %}
+    <p class="text-xs text-slate-500">Basado en {{ logged_total }} check-ins de este período. Que dos cosas vayan juntas no prueba que una cause la otra, pero es una buena pista para probar.</p>
+  {% elif need_days %}
+    <p class="text-sm text-slate-300">Te faltan <b>{{ need_days }}</b> check-ins en este período para empezar a ver patrones (por ejemplo, si dormir más te da más energía).</p>
+  {% else %}
+    <p class="text-sm text-slate-300">Todavía no aparece ninguna diferencia clara. Seguí registrando: con más semanas los patrones se notan mejor.</p>
+  {% endif %}
+</div>
+
+<!-- Objetivos semanales -->
+<h2 id="objetivos" class="font-bold text-lg mb-2">🎯 Objetivos de esta semana</h2>
+<div class="space-y-2 mb-2">
+  {% for g in goals %}
+  <div class="card !p-3 flex items-center gap-3">
+    <form method="post" action="/tablero/objetivos/{{ g.id }}/toggle"><button class="w-7 h-7 rounded-md border-2 flex items-center justify-center {% if g.done %}bg-brand2 border-brand2{% else %}border-slate-500{% endif %}">{% if g.done %}✓{% endif %}</button></form>
+    <span class="flex-1 {% if g.done %}line-through text-slate-400{% endif %}">{{ g.text }}</span>
+    <form method="post" action="/tablero/objetivos/{{ g.id }}/delete"><button class="text-slate-600 px-1">✕</button></form>
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-400">Poné 3 objetivos concretos para esta semana.</p>
+  {% endfor %}
+</div>
+<form method="post" action="/tablero/objetivos" class="flex gap-2 mb-6">
+  <input class="input" name="text" placeholder="Ej: Terminar el TP de física" maxlength="120" required>
+  <button class="btn !w-auto">+</button>
+</form>
+
+<!-- Ahorro -->
+<h2 id="ahorro" class="font-bold text-lg mb-2">💰 Ahorro mensual</h2>
+<form method="post" action="/tablero/ahorro" class="card mb-2 space-y-2">
+  <div class="grid grid-cols-2 gap-2">
+    <div><label class="label">Mes</label><input class="input" type="month" name="month" value="{{ today.strftime('%Y-%m') }}" required></div>
+    <div><label class="label">Ahorrado ($)</label><input class="input" type="number" step="1" name="amount" inputmode="numeric" value="{{ this_month|int if this_month is not none else '' }}" required></div>
+  </div>
+  <button class="btn">Guardar ahorro</button>
+</form>
+<div class="space-y-1 mb-6">
+  {% for s in savings %}
+  <div class="flex items-center gap-2 text-sm">
+    <span class="w-16 text-slate-400">{{ meses[s.month.month - 1] }} {{ s.month.year % 100 }}</span>
+    <div class="flex-1 h-3 rounded bg-line overflow-hidden"><div class="h-full rounded {{ 'bg-brand2' if s.amount >= 0 else 'bg-pinky' }}" style="width: {{ (s.amount|abs / max_saving * 100)|round(1) }}%"></div></div>
+    <span class="w-24 text-right">{{ ("$ {:,.0f}".format(s.amount)).replace(",", ".") }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Libros y cursos -->
+<h2 id="libros" class="font-bold text-lg mb-2">📖 Libros y cursos terminados</h2>
+<form method="post" action="/tablero/completado" class="card mb-2 space-y-2">
+  <div class="flex gap-2">
+    <select name="kind" class="input !w-28"><option value="libro">Libro</option><option value="curso">Curso</option></select>
+    <input class="input flex-1" name="title" placeholder="Título" maxlength="120" required>
+  </div>
+  <button class="btn">Lo terminé 🎉</button>
+</form>
+<div class="space-y-2">
+  {% for c in completions %}
+  <div class="card !p-3 flex items-center gap-3">
+    <span class="text-xl">{{ '📘' if c.kind == 'libro' else '🎓' }}</span>
+    <div class="flex-1 min-w-0"><p class="truncate">{{ c.title }}</p><p class="text-xs text-slate-400">{{ c.day|fecha_corta }} {{ c.day.year }}</p></div>
+    <form method="post" action="/tablero/completado/{{ c.id }}/delete" onsubmit="return confirm('¿Borrar?')"><button class="text-slate-600 px-1">✕</button></form>
+  </div>
+  {% endfor %}
+</div>
+
+<script src="/chart.umd.js"></script>
+<script>
+  const D = {{ chart|safe }};
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.borderColor = '#26264a';
+  Chart.defaults.font.family = 'inherit';
+  const common = (yMax) => ({
+    responsive: true, maintainAspectRatio: false, spanGaps: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { labels: { boxWidth: 10, boxHeight: 10 } }, tooltip: { backgroundColor: '#0f0f22', borderColor: '#26264a', borderWidth: 1 } },
+    scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } }, y: { beginAtZero: true, suggestedMax: yMax, grid: { color: '#1f1f3d' } } },
+  });
+  const line = (label, data, color) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: D.labels.length > 45 ? 0 : 2, tension: .3 });
+  new Chart(document.getElementById('c-feel'), { type: 'line', options: common(10), data: { labels: D.labels, datasets: [
+    line('Ánimo', D.mood, '#3b82f6'), line('Energía', D.energy, '#ec4899'), line('Satisfacción', D.satisfaction, '#c2850c') ] } });
+  const sleepOpts = common(9); sleepOpts.plugins.legend = { display: false };
+  new Chart(document.getElementById('c-sleep'), { type: 'line', options: sleepOpts, data: { labels: D.labels, datasets: [ line('Sueño (h)', D.sleep, '#7c5cff') ] } });
+  new Chart(document.getElementById('c-time'), { type: 'bar', options: common(3), data: { labels: D.labels, datasets: [
+    { label: 'Estudio (h)', data: D.study_h, backgroundColor: '#3b82f6', borderRadius: 4, barPercentage: .8 },
+    { label: 'Familia (h)', data: D.family_h, backgroundColor: '#ec4899', borderRadius: 4, barPercentage: .8 } ] } });
+</script>
+{% endblock %}

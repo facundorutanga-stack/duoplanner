@@ -1,0 +1,22 @@
+<div class="card !p-3" id="habit-{{ habit.id }}">
+  <div class="flex items-center gap-3">
+    <span class="text-2xl w-8 text-center">{{ habit.icon }}</span>
+    <div class="flex-1 min-w-0">
+      <p class="truncate {% if done %}text-slate-300{% endif %}">{{ habit.name }}</p>
+      <div class="flex gap-1 mt-1">
+        {% for w in week %}<span title="{{ weekdays[loop.index0] }}" class="w-2.5 h-2.5 rounded-full {% if w %}bg-green-500{% else %}bg-line{% endif %}"></span>{% endfor %}
+      </div>
+    </div>
+    <form method="post" action="/habits/{{ habit.id }}/delete" onsubmit="return confirm('¿Archivar este hábito?')">
+      <button class="text-slate-600 hover:text-slate-300 px-1" title="Archivar">✕</button>
+    </form>
+    <button hx-post="/habits/{{ habit.id }}/toggle?d={{ day.isoformat() }}" hx-target="#habit-{{ habit.id }}" hx-swap="outerHTML"
+            class="w-9 h-9 rounded-lg border-2 flex items-center justify-center text-lg font-bold
+                   {% if done %}bg-brand2 border-brand2{% else %}border-slate-500{% endif %}">{% if done %}✓{% endif %}</button>
+  </div>
+</div>
+{% if oob and flashes %}
+<div id="toasts" hx-swap-oob="true" class="space-y-2 mb-3">
+  {% for f in flashes %}<div class="toast">{{ f }}</div>{% endfor %}
+</div>
+{% endif %}

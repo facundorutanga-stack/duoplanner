@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center mt-10 mb-8">
+  <div class="text-6xl mb-3">🫂</div>
+  <h1 class="text-4xl font-extrabold title-grad">DuoPlanner</h1>
+  <p class="text-slate-400 mt-2">Progresá con tus amigos. Cada día cuenta.</p>
+</div>
+<form method="post" action="/login" class="space-y-3">
+  {% if error %}<div class="toast">{{ error }}</div>{% endif %}
+  <input class="input" type="email" name="email" placeholder="tu@email.com" value="{{ email or '' }}" required autocomplete="email">
+  <input class="input" type="password" name="password" placeholder="Contraseña" required autocomplete="current-password">
+  <button class="btn mt-2">Iniciar sesión</button>
+</form>
+<p class="text-center text-sm text-slate-400 mt-6">¿No tenés cuenta? <a href="/register" class="text-brand font-semibold">Creala acá</a></p>
+{% endblock %}

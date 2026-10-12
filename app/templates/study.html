@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block content %}
+{{ m.header("Estudio", "📚") }}
+
+<div class="card mb-3">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-sm text-slate-400">Horas esta semana</p>
+      <p class="text-3xl font-extrabold">{{ total|horas }}</p>
+      <p class="text-sm text-slate-400">de {{ goal|horas }} objetivo</p>
+    </div>
+    {{ m.ring(pct, '#ec4899', 72) }}
+  </div>
+  <div class="flex items-end justify-between h-28 mt-4 gap-2">
+    {% for mins in per_day %}
+    <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+      <div class="w-full rounded-t-md bg-gradient-to-t from-brand2 to-brand" style="height: {{ (mins / max_day * 100)|round(1) }}%; min-height: {% if mins %}4px{% else %}0{% endif %}"></div>
+      <span class="text-[10px] text-slate-500">{{ weekdays[loop.index0] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<details class="mb-3" {% if not recent %}open{% endif %}>
+  <summary class="btn cursor-pointer list-none">+ Cargar estudio</summary>
+  <form method="post" action="/study" class="card mt-2 space-y-3">
+    <div>
+      <label class="label">Materia</label>
+      <input class="input" name="subject" list="subjects" placeholder="Ej: Matemáticas" required maxlength="60">
+      <datalist id="subjects">{% for s in known %}<option value="{{ s }}">{% endfor %}</datalist>
+    </div>
+    <div class="flex gap-2">
+      <div class="flex-1"><label class="label">Horas</label><input class="input" type="number" name="hours" min="0" max="16" value="1"></div>
+      <div class="flex-1"><label class="label">Minutos</label><input class="input" type="number" name="minutes" min="0" max="59" value="0"></div>
+    </div>
+    <div><label class="label">Fecha</label><input class="input" type="date" name="day" value="{{ today.isoformat() }}" min="{{ min_day.isoformat() }}" max="{{ today.isoformat() }}" required></div>
+    <div><label class="label">Nota (opcional)</label><input class="input" name="note" maxlength="500" placeholder="Qué estudiaste"></div>
+    <button class="btn">Guardar</button>
+  </form>
+</details>
+
+{% if subjects %}
+<h2 class="font-bold text-lg mt-5 mb-2">Materias esta semana</h2>
+<div class="space-y-2">
+  {% for name, mins in subjects %}
+  <div class="card !p-3 flex items-center gap-3">
+    <span class="text-xl">📘</span>
+    <div class="flex-1"><p class="font-semibold">{{ name }}</p><p class="text-xs text-slate-400">{{ mins|horas }} esta semana</p></div>
+    {{ m.ring(mins / total if total else 0, '#7c5cff', 44) }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2 class="font-bold text-lg mt-5 mb-2">Historial</h2>
+<div class="space-y-2">
+  {% for s in recent %}
+  <div class="card !p-3 flex items-center gap-3">
+    <div class="flex-1 min-w-0">
+      <p class="font-semibold truncate">{{ s.subject }} · {{ s.minutes|horas }}</p>
+      <p class="text-xs text-slate-400 truncate">{{ s.day|fecha_larga }}{% if s.note %} · {{ s.note }}{% endif %}</p>
+    </div>
+    {% if can_edit(s.day) %}
+    <form method="post" action="/study/{{ s.id }}/delete" onsubmit="return confirm('¿Borrar este registro?')">
+      <button class="text-slate-500 px-2" title="Borrar">🗑</button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-400">Todavía no cargaste estudio.</p>
+  {% endfor %}
+</div>
+{% endblock %}

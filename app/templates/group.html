@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block content %}
+{{ m.header("Tu grupo", "👥") }}
+
+{% if group %}
+<div class="card text-center mb-4">
+  <p class="text-slate-400 text-sm">{{ group.name }}</p>
+  <p class="text-sm mt-3">Código de invitación</p>
+  <p class="text-4xl font-mono font-extrabold tracking-[0.3em] my-2 title-grad">{{ group.invite_code }}</p>
+  <button type="button" class="btn btn-ghost mt-2" onclick="share()">📤 Compartir invitación</button>
+</div>
+<h2 class="font-bold text-lg mb-2">Miembros ({{ members|length }})</h2>
+<div class="space-y-2 mb-6">
+  {% for mbr in members %}
+  <div class="card !p-3 flex items-center gap-3"><span class="text-2xl">{{ mbr.avatar }}</span><span>{{ mbr.name }}{% if mbr.id == user.id %} (vos){% endif %}</span></div>
+  {% endfor %}
+</div>
+<form method="post" action="/group/leave" onsubmit="return confirm('¿Salir del grupo?')">
+  <button class="text-sm text-slate-500 w-full">Salir del grupo</button>
+</form>
+<script>
+  function share() {
+    const text = '¡Sumate a mi grupo en DuoPlanner! Código: {{ group.invite_code }} ' + location.origin + '/register';
+    if (navigator.share) navigator.share({ text });
+    else { navigator.clipboard.writeText(text); alert('Invitación copiada'); }
+  }
+</script>
+{% else %}
+<div class="card mb-4">
+  <p class="font-semibold mb-1">Unirme a un grupo</p>
+  <p class="text-sm text-slate-400 mb-3">Pedile el código a tu amigo.</p>
+  <form method="post" action="/group/join" class="flex gap-2">
+    <input class="input font-mono uppercase tracking-widest" name="code" placeholder="ABC123" maxlength="12" required>
+    <button class="btn !w-auto">Unirme</button>
+  </form>
+</div>
+<div class="card">
+  <p class="font-semibold mb-1">Crear un grupo nuevo</p>
+  <p class="text-sm text-slate-400 mb-3">Te damos un código para invitar a tus amigos.</p>
+  <form method="post" action="/group/create" class="space-y-2">
+    <input class="input" name="name" placeholder="Ej: Los disciplinados" maxlength="60" required>
+    <button class="btn">Crear grupo</button>
+  </form>
+</div>
+<a href="/" class="block text-center text-sm text-slate-400 mt-5">Ahora no, ir al inicio</a>
+{% endif %}
+{% endblock %}

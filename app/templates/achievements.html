@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block content %}
+{{ m.header("Logros", "🏅") }}
+<div class="grid grid-cols-2 gap-2 mb-5">
+  <div class="card text-center"><p class="text-2xl font-extrabold">🔥 {{ streak }}</p><p class="text-xs text-slate-400">racha actual</p></div>
+  <div class="card text-center"><p class="text-2xl font-extrabold">🏆 {{ best }}</p><p class="text-xs text-slate-400">mejor racha</p></div>
+</div>
+
+<h2 class="font-bold text-lg mb-2">Muro del grupo</h2>
+<div class="card space-y-3 mb-5">
+  {% for f in feed %}
+  <div class="flex items-center gap-3">
+    <span class="text-2xl">{{ f.a.icon }}</span>
+    <div><p class="text-sm"><b>{% if f.user.id == user.id %}Vos{% else %}{{ f.user.name }}{% endif %}</b>: {{ f.a.title }}</p>
+      <p class="text-xs text-slate-400">{{ f.when.date()|fecha_corta }}</p></div>
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-400">Nadie desbloqueó logros todavía.</p>
+  {% endfor %}
+</div>
+
+<h2 class="font-bold text-lg mb-2">Tus logros ({{ mine|length }}/{{ all|length }})</h2>
+<div class="grid grid-cols-2 gap-2">
+  {% for a in all %}
+  <div class="card text-center {% if a.code not in mine %}opacity-40 grayscale{% endif %}">
+    <div class="text-3xl">{{ a.icon }}</div>
+    <p class="font-semibold text-sm mt-1">{{ a.title }}</p>
+    <p class="text-xs text-slate-400">{{ a.description }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

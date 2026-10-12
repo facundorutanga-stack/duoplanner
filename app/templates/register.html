@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center mt-8 mb-6">
+  <h1 class="text-3xl font-extrabold title-grad">Crear cuenta</h1>
+  <p class="text-slate-400 mt-2">Después armás tu grupo o te unís al de tus amigos.</p>
+</div>
+<form method="post" action="/register" class="space-y-3">
+  {% if error %}<div class="toast">{{ error }}</div>{% endif %}
+  <input class="input" name="name" placeholder="Tu nombre" value="{{ name or '' }}" required maxlength="40">
+  <input class="input" type="email" name="email" placeholder="tu@email.com" value="{{ email or '' }}" required autocomplete="email">
+  <input class="input" type="password" name="password" placeholder="Contraseña (mínimo 8)" minlength="8" required autocomplete="new-password">
+  <button class="btn mt-2">Crear cuenta</button>
+</form>
+<p class="text-center text-sm text-slate-400 mt-6">¿Ya tenés cuenta? <a href="/login" class="text-brand font-semibold">Iniciá sesión</a></p>
+{% endblock %}

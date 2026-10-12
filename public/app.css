@@ -1,0 +1,17 @@
+.card { background: #15152b; border: 1px solid #26264a; border-radius: 1rem; padding: 1rem; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; width: 100%;
+  padding: .8rem 1rem; border-radius: .9rem; font-weight: 600;
+  background: linear-gradient(90deg, #7c5cff, #9b6dff); color: white; }
+.btn:active { transform: scale(.98); }
+.btn-ghost { background: transparent; border: 1px dashed #3b3b6b; color: #a5b4fc; }
+.input { width: 100%; background: #0f0f22; border: 1px solid #26264a; border-radius: .75rem;
+  padding: .7rem .9rem; color: #f1f5f9; }
+.input:focus { outline: none; border-color: #7c5cff; }
+.label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: .3rem; }
+.toast { background: #1e1b4b; border: 1px solid #4c1d95; border-radius: .75rem; padding: .6rem .9rem;
+  font-size: .9rem; animation: fadein .2s ease-out; }
+.tab { flex: 1; text-align: center; padding: .5rem; border-radius: .6rem; font-size: .85rem; color: #94a3b8; }
+.tab.on { background: #3b82f6; color: white; font-weight: 600; }
+.title-grad { background: linear-gradient(90deg, #60a5fa, #a78bfa, #ec4899); -webkit-background-clip: text;
+  background-clip: text; color: transparent; }
+@keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
