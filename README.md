@@ -107,6 +107,9 @@ código de 6 letras. Ellos se registran y ponen el código en **Unirme a un grup
   calorías, proteína, fibra, grasas, carbohidratos y agua, y arma un día de ejemplo con porciones en gramos.
   Las fuentes científicas están en la misma pantalla y en `app/nutrition.py`. Es una guía para adultos
   sanos, no reemplaza a un nutricionista.
+  También podés cargar tipo de alimentación (vegana, vegetariana, pescetariana), comidas por día,
+  alergias, intolerancias, alimentos que no querés y condiciones de salud: el menú se arma solo con
+  lo permitido y explica qué cambió y por qué. En el menú, el botón 🚫 saca un alimento que te cayó mal.
 - Las metas semanales y el avatar se cambian en **Perfil** (tocá tu avatar arriba a la derecha).
 
 Para cambiar las reglas, editá las constantes al principio de `app/points.py`.

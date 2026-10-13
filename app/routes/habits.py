@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Habit, HabitCheck, User
-from ..points import EDIT_WINDOW_DAYS, WEEKDAYS, active_habits, can_edit, streak, week_start
+from ..points import EDIT_WINDOW_DAYS, WEEKDAYS, active_habits, can_edit, remove_habit, streak, week_start
 from ..security import current_user, today_for
 from .common import after_change, flash, redirect, render
 
@@ -84,8 +84,8 @@ def toggle(request: Request, habit_id: int, d: str | None = None, user: User = D
 @router.post("/{habit_id}/delete")
 def archive(request: Request, habit_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
     habit = _own_habit(db, user, habit_id)
-    habit.active = False
-    today = today_for(user)
-    after_change(request, db, user, today, today)
-    flash(request, f"Hábito archivado: {habit.name}")
+    name = habit.name
+    remove_habit(db, user, habit)
+    db.commit()
+    flash(request, f"Hábito borrado: {name}. Sus puntos se descontaron.")
     return redirect("/habits")

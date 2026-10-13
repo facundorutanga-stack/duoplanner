@@ -173,3 +173,19 @@ class NutritionProfile(Base):
     activity: Mapped[str] = mapped_column(String(12), default="moderada")
     goal: Mapped[str] = mapped_column(String(12), default="mantener")  # perder | mantener | ganar
     vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class NutritionPrefs(Base):
+    """Restricciones y gustos. Tabla aparte para no tocar la de datos físicos (sin migraciones).
+    Las listas se guardan como texto separado por comas."""
+    __tablename__ = "nutrition_prefs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    diet: Mapped[str] = mapped_column(String(16), default="omnivora")
+    meals_per_day: Mapped[int] = mapped_column(Integer, default=4)
+    allergies: Mapped[str] = mapped_column(String(300), default="")
+    intolerances: Mapped[str] = mapped_column(String(300), default="")
+    conditions: Mapped[str] = mapped_column(String(300), default="")
+    avoid: Mapped[str] = mapped_column(Text, default="")  # claves de alimentos que no quiere
+    other: Mapped[str] = mapped_column(String(300), default="")  # texto libre

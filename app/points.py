@@ -182,6 +182,26 @@ def best_streak(db: Session, user: User, today: date) -> int:
     return best
 
 
+def remove_habit(db: Session, user: User, habit: Habit) -> None:
+    """Borra un hábito con todas sus marcas y descuenta sus puntos de cada día afectado."""
+    days = set(db.scalars(select(HabitCheck.day).where(HabitCheck.habit_id == habit.id)))
+    db.execute(delete(HabitCheck).where(HabitCheck.habit_id == habit.id))
+    db.delete(habit)
+    db.flush()
+    for day in sorted(days):
+        recompute_day(db, user, day)
+
+
+def purge_archived_habits(db: Session) -> None:
+    """Limpieza de versiones viejas: antes, borrar un hábito solo lo archivaba y sus
+    puntos quedaban en el ranking. Si quedó alguno así, se borra bien."""
+    for habit in db.scalars(select(Habit).where(Habit.active.is_(False))).all():
+        user = db.get(User, habit.user_id)
+        if user:
+            remove_habit(db, user, habit)
+    db.commit()
+
+
 def group_members(db: Session, user: User) -> list[User]:
     if user.group_id is None:
         return [user]

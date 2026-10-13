@@ -8,7 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from starlette.middleware.sessions import SessionMiddleware
 
-from .db import Base, engine
+from .db import Base, SessionLocal, engine
+from .points import purge_archived_habits
 from .routes import auth, group, gym, habits, home, nutricion, profile, ranking, study, tablero
 from .security import LoginRequired
 
@@ -34,6 +35,8 @@ async def lifespan(app: FastAPI):
         try:
             # Crea las tablas que falten. Para cambios de columnas más adelante, usá Alembic.
             Base.metadata.create_all(engine)
+            with SessionLocal() as db:
+                purge_archived_habits(db)
         except Exception as exc:  # noqa: BLE001 - queremos mostrar cualquier error de conexión
             PROBLEMS.append("No me pude conectar a la base de datos: "
                             + _hide_password(f"{type(exc).__name__}: {exc}")[:600])

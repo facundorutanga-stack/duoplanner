@@ -26,7 +26,32 @@
       <select class="input" name="activity">{% for k, (f, label) in activity.items() %}<option value="{{ k }}" {% if (p and p.activity == k) or (not p and k == 'moderada') %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     <div><label class="label">Objetivo</label>
       <select class="input" name="goal">{% for k, g in goals.items() %}<option value="{{ k }}" {% if (p and p.goal == k) or (not p and k == 'mantener') %}selected{% endif %}>{{ g[3] }}</option>{% endfor %}</select></div>
-    <label class="flex items-center gap-3"><input type="checkbox" name="vegetarian" value="true" class="w-5 h-5 accent-violet-500" {% if p and p.vegetarian %}checked{% endif %}> Soy vegetariano/a</label>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="label">Tipo de alimentación</label>
+        <select class="input" name="diet">{% for k, (label, _) in diets.items() %}<option value="{{ k }}" {% if prefs.diet == k %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div><label class="label">Comidas por día</label>
+        <select class="input" name="meals_per_day">{% for n in meal_counts %}<option value="{{ n }}" {% if prefs.meals_per_day == n %}selected{% endif %}>{{ n }} comidas</option>{% endfor %}</select></div>
+    </div>
+    {% macro chips(name, options, chosen, cls='') -%}
+    <div class="flex flex-wrap gap-2">{% for k, opt in options.items() %}
+      <label class="chip {{ cls }}"><input type="checkbox" name="{{ name }}" value="{{ k }}" {% if k in chosen %}checked{% endif %}><span>{{ opt if opt is string else opt[0] }}</span></label>
+    {% endfor %}</div>
+    {%- endmacro %}
+    <div><p class="label">🚨 Alergias (lo sacamos por completo)</p>{{ chips("allergies", allergies, r.allergies, "warn") }}</div>
+    <div><p class="label">😖 Intolerancias o cosas que te caen mal</p>{{ chips("intolerances", intolerances, r.intolerances) }}</div>
+    <details class="rounded-xl border border-line p-3" {% if r.avoid %}open{% endif %}>
+      <summary class="text-sm cursor-pointer list-none flex justify-between"><span>🙅 Alimentos que no querés o no te gustan</span><span class="text-slate-400">{{ r.avoid|length or '' }} ›</span></summary>
+      {% for cat in categories %}
+      <p class="text-xs text-slate-500 mt-3 mb-1">{{ cat }}</p>
+      <div class="flex flex-wrap gap-2">{% for k, f in foods.items() if f[6] == cat %}
+        <label class="chip"><input type="checkbox" name="avoid" value="{{ k }}" {% if k in r.avoid %}checked{% endif %}><span>{{ f[0] }}</span></label>
+      {% endfor %}</div>
+      {% endfor %}
+    </details>
+    <div><label class="label">Otras cosas que te caen mal o no comés</label>
+      <input class="input" name="other" maxlength="300" placeholder="Ej.: no me gusta la palta, la cebolla me cae pesada" value="{{ prefs.other or '' }}">
+      <p class="text-[11px] text-slate-500 mt-1">Si nombrás un alimento de la lista, lo sacamos del plan.</p></div>
+    <div><p class="label">🩺 Salud (opcional)</p>{{ chips("conditions", conditions, r.conditions) }}</div>
     <button class="btn">Calcular mi plan</button>
   </form>
 </div>
@@ -41,6 +66,20 @@
   <p class="text-xs text-slate-500 mt-1">Gasto en reposo {{ t.bmr }} kcal · gasto total estimado {{ t.tdee }} kcal{% if t.kcal == floor %} · no bajamos de {{ floor }} kcal sin seguimiento profesional{% endif %}</p>
 </div>
 
+{% if r.allergies or r.intolerances or r.avoid or r.diet != 'omnivora' or r.conditions %}
+<div class="flex flex-wrap gap-1.5 mb-4 -mt-2">
+  {% if r.diet != 'omnivora' %}<span class="text-xs px-2 py-1 rounded-full bg-brand/20">🌱 {{ diets[r.diet][0] }}</span>{% endif %}
+  {% for a in r.allergies if a in allergies %}<span class="text-xs px-2 py-1 rounded-full bg-red-500/20">🚨 {{ allergies[a][0] }}</span>{% endfor %}
+  {% for i in r.intolerances if i in intolerances %}<span class="text-xs px-2 py-1 rounded-full bg-amber-500/20">😖 {{ intolerances[i][0] }}</span>{% endfor %}
+  {% for c in r.conditions if c in conditions %}<span class="text-xs px-2 py-1 rounded-full bg-sky-500/20">🩺 {{ conditions[c] }}</span>{% endfor %}
+  {% if r.avoid %}<span class="text-xs px-2 py-1 rounded-full bg-line">🙅 {{ r.avoid|length }} alimento{{ 's' if r.avoid|length != 1 }} evitado{{ 's' if r.avoid|length != 1 }}</span>{% endif %}
+</div>
+{% endif %}
+{% for tip in tips %}
+<div class="card !p-3 mb-2 border-amber-500/40 text-sm text-slate-200">⚠️ {{ tip }}</div>
+{% endfor %}
+{% if tips %}<div class="mb-4"></div>{% endif %}
+
 <h2 class="font-bold text-lg mb-2">Tus objetivos diarios</h2>
 <div class="grid grid-cols-2 gap-2 mb-2">
   <div class="card !p-3"><p class="text-xs text-slate-400">🥩 Proteína</p><p class="text-2xl font-extrabold">{{ t.protein_g }} g</p><p class="text-[11px] text-slate-500">rango {{ t.protein_range[0] }}-{{ t.protein_range[1] }} g · ~{{ t.protein_per_meal }} g por comida</p></div>
@@ -52,8 +91,8 @@
 </div>
 <p class="text-xs text-slate-400 mb-5">Límites: azúcar agregada menos de {{ t.sugar_max_g }} g (ideal la mitad) y sal menos de {{ t.salt_max_g }} g por día.</p>
 
-<h2 class="font-bold text-lg mb-1">Un día de ejemplo</h2>
-<p class="text-xs text-slate-400 mb-2">Calculado para tus números. Usalo como guía y cambiá alimentos con las tablas de abajo.</p>
+<h2 id="menu" class="font-bold text-lg mb-1">Un día de ejemplo</h2>
+<p class="text-xs text-slate-400 mb-2">Calculado para tus números y lo que no comés. Si algo te cae mal o no te gusta, tocá 🚫 y lo cambiamos.</p>
 <div class="card mb-2 space-y-2">
   {{ bar("Proteína", total_p, t.protein_g, "g", "#3b82f6") }}
   {{ bar("Fibra", total_f, t.fiber_g, "g", "#22c55e") }}
@@ -66,12 +105,26 @@
       <span class="text-xs text-slate-400">{{ meal.kcal|round|int }} kcal · {{ meal.protein|round|int }} g prot · {{ meal.fiber|round|int }} g fibra</span></summary>
     <ul class="mt-2 space-y-1">
       {% for i in meal.items %}
-      <li class="flex justify-between text-sm"><span>{{ i.name }}</span><span class="text-slate-400">{{ i.amount }}</span></li>
+      <li class="flex items-center justify-between gap-2 text-sm"><span class="flex-1">{{ i.name }}</span><span class="text-slate-400 whitespace-nowrap">{{ i.amount }}</span>
+        <form method="post" action="/nutricion/evitar" onsubmit="return confirm('¿Sacar {{ i.name }} de tu plan?')"><input type="hidden" name="key" value="{{ i.key }}"><button class="opacity-50 hover:opacity-100 text-xs px-1" title="Me cae mal / no lo quiero">🚫</button></form></li>
       {% endfor %}
     </ul>
   </details>
   {% endfor %}
 </div>
+
+{% if changes or avoided %}
+<details class="card mb-5" open>
+  <summary class="font-semibold cursor-pointer list-none">🔄 Cómo adaptamos tu plan</summary>
+  {% if changes %}<ul class="text-sm text-slate-300 space-y-1.5 mt-2">{% for c in changes %}<li>• {{ c }}</li>{% endfor %}</ul>{% endif %}
+  {% if avoided %}
+  <p class="text-xs text-slate-400 mt-3 mb-1">Alimentos que sacaste (tocá para volver a incluirlos):</p>
+  <div class="flex flex-wrap gap-1.5">{% for k, name in avoided %}
+    <form method="post" action="/nutricion/permitir"><input type="hidden" name="key" value="{{ k }}"><button class="text-xs px-2 py-1 rounded-full border border-line hover:border-brand">{{ name }} ↺</button></form>
+  {% endfor %}</div>
+  {% endif %}
+</details>
+{% endif %}
 
 <h2 class="font-bold text-lg mb-2">Para cambiar: más proteína por caloría</h2>
 <div class="card mb-4 overflow-x-auto">
@@ -99,6 +152,7 @@
     <li><b>Proteína:</b> el beneficio para el músculo se estabiliza cerca de 1,6 g por kg y por día (hasta ~2,2). En déficit conviene la parte alta. Repartida en 4 comidas de ~0,4 g/kg.</li>
     <li><b>Fibra:</b> la OMS recomienda al menos 25 g por día; usamos 14 g cada 1000 kcal si da más.</li>
     <li><b>Grasas, azúcar y sal:</b> recomendaciones de la OMS.</li>
+    <li><b>Alergias e intolerancias:</b> con alergia se saca el alimento y todo lo que lo contiene; con intolerancia se usan versiones que se toleran (por ejemplo, sin lactosa). Cada cambio se reemplaza por algo con nutrientes parecidos.</li>
     <li><b>Alimentos:</b> valores aproximados de USDA FoodData Central; cambian según marca y cocción.</li>
   </ul>
   <ul class="text-xs mt-3 space-y-1">{% for label, url in sources %}<li><a class="text-brand underline" href="{{ url }}" target="_blank" rel="noopener">{{ label }}</a></li>{% endfor %}</ul>
